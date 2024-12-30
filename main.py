@@ -2,7 +2,6 @@ MENU = {
     "espresso": {
         "ingredients": {
             "water": 50,
-            "milk": 0,
             "coffee": 18,
         },
         "cost": 1.5,
@@ -25,28 +24,12 @@ MENU = {
     }
 }
 
+money = 0.0
 resources = {
     "water": 300,
     "milk": 200,
     "coffee": 100,
-    "money": 0.0,
 }
-
-# TODO 3: Print a report of all coffee machine resources
-def resource_levels():
-    """Return string with Water, milk, coffee, and money levels"""
-    return (f"Water: {resources['water']}ml\n"
-            f"Milk: {resources['milk']}ml\n"
-            f"Coffee: {resources['coffee']}g\n"
-            f"Money: ${round(resources['money'],2)}")
-
-def reduce_resources(menu_item):
-    """reduces the resource amount based on provided menu items ingredients"""
-    return
-
-# TODO 4: Check resources sufficient?
-def is_menu_item(item_to_check):
-    return item_to_check == "latte" or item_to_check == "cappuccino" or item_to_check == "espresso"
 
 def input_cleanup(string_to_cleanup):
     """Corrects misspelling of menu items as long as the first char is correct"""
@@ -63,65 +46,67 @@ def input_cleanup(string_to_cleanup):
         corrected_input = "cappuccino"
     return corrected_input
 
+def resource_levels():
+    """Return string with Water, milk, coffee, and money levels"""
+    return (f"Water: {resources['water']}ml\n"
+            f"Milk: {resources['milk']}ml\n"
+            f"Coffee: {resources['coffee']}g\n"
+            f"Money: ${round(money,2)}")
+
+def is_menu_item(item_to_check):
+    return item_to_check == "latte" or item_to_check == "cappuccino" or item_to_check == "espresso"
+
 def check_resources_for_order(menu_item):
     """Check if the machine has the resources to fill the order"""
     adequate_resources = True
-    required_water = menu_item["ingredients"]["water"]
-    required_milk = menu_item["ingredients"]["milk"]
-    required_coffee = menu_item["ingredients"]["coffee"]
-    inadequate = "Not enough "
-    if required_water > resources['water']:
-        adequate_resources = False
-        inadequate += "Water "
-    if required_milk > resources['milk']:
-        adequate_resources = False
-        inadequate += "Milk "
-    if required_coffee > resources['coffee']:
-        adequate_resources = False
-        inadequate += "Coffee "
-    if not adequate_resources:
-        print(inadequate + "to fill order.")
+    for item in menu_item:
+        if menu_item[item] >= resources[item]:
+            print(f"Sorry there is not enough {item.upper()} to fill the order.")
+            adequate_resources = False
+    print("Refunding Money.")
     return adequate_resources
 
-def update_resources_after_sale(menu_item):
-    resources["water"] -= menu_item["ingredients"]["water"]
-    resources["milk"] -= menu_item["ingredients"]["milk"]
-    resources["coffee"] -= menu_item["ingredients"]["coffee"]
-    resources["money"] += menu_item["cost"]
+def make_coffee(name_of_drink, menu_item,):
+    """Make the coffee, remove the used ingredients from resources"""
+    for item in menu_item["ingredients"]:
+        resources[item] -= menu_item["ingredients"][item]
+    print(f"Here is your {name_of_drink} ☕. Enjoy!")
 
-# TODO 5: Process coins.
-# TODO 6: Check transaction successful
-def coin_processing(cost, given_quarters, given_dimes, given_nickels, given_pennies):
-    value = (given_quarters * .25) + (given_dimes * .1) + (given_nickels * .05) + (given_pennies * .01)
+def coin_processing():
+    """Calculate the value of given coins"""
+    print("Please insert coins.")
+    total = int(input("How many quarters?: ")) * 0.25
+    total += int(input("How many dimes?: ")) * 0.1
+    total += int(input("How many nickels?: ")) * 0.05
+    total += int(input("How many pennies?: ")) * 0.01
+    return total
+
+def is_transaction_successful(paid, cost):
+    """Return true if provided enough money for transaction"""
+    global money
     paid_enough = False
-    if value >= cost:
-        print(f"Here is your change: ${round(value - cost,2)}")
+    if paid >= cost:
+        print(f"Here is your change: ${round(paid - cost, 2)}")
+        money += cost
         paid_enough = True
     else:
         print("Sorry that was not enough to purchase that product. Refunding Money.")
     return paid_enough
 
-
-
 def coffee_machine():
     on = True
     while on:
         selection = input_cleanup(input("What would you like? (espresso/latte/cappuccino): ").lower())
-# TODO 2: Turn off the Coffee Machine by entering “off” to the prompt.
         if selection == "off":
             on = False
         elif selection == "report":
             print(resource_levels())
         elif is_menu_item(selection):
             order = MENU[selection]
-            if check_resources_for_order(order):
-                if coin_processing(order["cost"],
-                                int(input("How many quarters?: ")),
-                                int(input("How many dimes?: ")),
-                                int(input("How many nickels?: ")),
-                                int(input("How many pennies?: "))):
-                    print(f"Here is your {selection} ☕. Enjoy!")
-                    update_resources_after_sale(order)
+            if check_resources_for_order(order["ingredients"]):
+                money_given = coin_processing()
+                if is_transaction_successful(money_given, order["cost"]):
+                    make_coffee(selection, order)
         else:
             print("please make a valid selection")
 
